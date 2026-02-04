@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, cloudinaryTest } from "../controllers/user.controller.js";
+import { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, cloudinaryTest, getWatchHistory, getUserChannelProfile} from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
@@ -25,10 +25,12 @@ router.route("/login").post(loginUser) // 2. Login
 router.route("/logout").post(verifyJWT, logoutUser) //3. Logout
 router.route("/refresh-token").post(refreshAccessToken) // 4. get new refreshToken
 router.route("/change-password").post(verifyJWT, changeCurrentPassword) //5. Change password
-router.route("/update-user-account-details").put(verifyJWT, updateAccountDetails) // 6. update user avatar
-router.route("/update-avatar").put(upload.single("avatar"), verifyJWT, updateUserAvatar) // 8. update user avatar
-router.route("/update-cover-image").put(upload.single("coverImage"), verifyJWT, updateUserCoverImage) // 9. update user cover image
-router.route("/currentUser").get(verifyJWT, getCurrentUser) // 10. get current user details
-router.delete("/delete-test/:publicId", cloudinaryTest); // 11. cloudinary test
+router.route("/update-user-account-details").patch(verifyJWT, updateAccountDetails) // 6. update user avatar
+router.route("/update-avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar) // 7. update user avatar
+router.route("/update-cover-image").patch(verifyJWT,upload.single("coverImage"), updateUserCoverImage) // 8. update user cover image
+router.route("/channel/:userId").get(getUserChannelProfile) // 9. get user channel profile
+router.route("/current-user").get(verifyJWT, getCurrentUser) // 10. get current user details
+router.route("/watch-history").get(verifyJWT, getWatchHistory) // 11. get watch history
+router.delete("/delete-test/:publicId", cloudinaryTest); // 12. cloudinary test
 
 export default router
