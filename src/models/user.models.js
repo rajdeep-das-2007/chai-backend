@@ -31,6 +31,16 @@ const userSchema = new Schema({
     coverImage: {
         type: String, // cloudinary url
     },
+    avatarPublicId: {
+        type: String,
+        default: undefined,
+        trim: true
+    },
+    coverImagePublicId: {
+        type: String,
+        default: undefined,
+        trim: true
+    },
     watchHistory: [
         {
             type: Schema.Types.ObjectId,
