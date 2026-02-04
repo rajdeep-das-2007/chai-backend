@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.models.js";
-import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary, checkIfFileExists } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 
@@ -208,7 +208,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         if (incomingRefreshToken !== user?.refreshToken) {
             await User.findByIdAndUpdate(
                 user._id,
-                { $set: { refreshToken: undefined } },
+                { $set: { refreshToken: null } },
                 { new: true }
             )
 
@@ -372,26 +372,32 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, { user, coverImageURL: coverImage.url }, "CoverImage Successfully updated"))
 })
 
-const cloudinaryTest = asyncHandler(async (req, res) => {
-    console.log("req.body:", req.body);
-    console.log("typeof req.body:", typeof req.body);
+const cloudinaryTest = asyncHandler(async (req, res) => { //Cloudinary delete test
+    const { publicId } = req.params;
+    console.log("Public ID to be deleted:", publicId);
 
-    const { testImagePublicId } = req.body;
-
-    console.log("Public ID to be deleted:", testImagePublicId);
-
-    if (!testImagePublicId || testImagePublicId.trim() === "") {
-        throw new ApiError(400, "Public ID is required to delete the image");
+    if (!publicId || publicId.trim() === "") {
+        throw new ApiError(400, "Public ID is required");
     }
 
-    const imgStatus = await deleteFromCloudinary(testImagePublicId);
+    try {
+        const fileStatus = await checkIfFileExists(publicId);
+        console.log("File exists on Cloudinary.");
+        console.log(fileStatus);
 
-    console.log(imgStatus);
+    } catch (error) {
+        throw new ApiError(401, "File does not exists", error)
+    }
+
+
+    const imgStatus = await deleteFromCloudinary(publicId);
+    console.log(imgStatus)
 
     return res
         .status(200)
         .json(new ApiResponse(200, {}, "Test Image deleted successfully"));
 });
+
 
 
 export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, cloudinaryTest }

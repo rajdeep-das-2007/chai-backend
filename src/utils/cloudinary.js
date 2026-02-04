@@ -41,4 +41,17 @@ const deleteFromCloudinary = async (publicId) => {
     }
 }
 
-export { uploadOnCloudinary, deleteFromCloudinary };
+const checkIfFileExists = async (publicId) => {
+    try {
+        if(!publicId){
+            return;
+        }
+
+        await cloudinary.api.resource(publicId, { resource_type: "image" });
+        console.log(`File with public ID ${publicId} exists on Cloudinary.`);
+    } catch(error) {
+        console.error("Error finding file from Cloudinary:", error);
+    }
+}
+
+export { uploadOnCloudinary, deleteFromCloudinary, checkIfFileExists };
