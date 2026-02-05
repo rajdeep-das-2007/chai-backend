@@ -413,7 +413,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "Subscription",
+                from: "subscriptions",
                 localField: "_id",
                 foreignField: "channel",
                 as: "subscribers"
@@ -421,7 +421,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "Subscription",
+                from: "subscriptions",
                 localField: "_id",
                 foreignField: "subscriber",
                 as: "subscribedTo"
@@ -469,47 +469,170 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
             $match: {
-                _id: new mongoose.Types.ObjectId(req.user?._id)
-            },
+                _id: new mongoose.Types.ObjectId(req.user._id) // matching user id from req.user with _id in User collection
+            }                                                  // userdata has been received and passed to next stage
+        },
+        {   // userdata has been received and passed here
             $lookup: {
-                from: "Video",
-                localField: "watchHistory",
-                foreignField: "_id",
-                as: "watchHistory",
-                pipeline: [
-                    {
+                from: "videos",
+                localField: "watchHistory", // its an array
+                foreignField: "_id", // matching watchHistory[0,1,2,3...] === videos._id one by one
+                as: "watchHistory", // same key will be updated; watchHistory: [{object data}({_id, owner, title, description, thumbnail, videoFile, duration, views}), {}, {}, ...]
+
+                // Explanation: Upto this point, I have matched userIds from watchHistory and updated the key with respective video documents which contains the video data
+
+                pipeline: [ // in this stage we have access to each video document which matched with watchHistory array of user document
+                    {  //watchHistory: [{object data}({_id, owner, title, description, thumbnail, videoFile, duration, views}), {}, {}, ...] has been passed here
                         $lookup: {
-                            from: "User",
+                            from: "users",
                             localField: "owner",
-                            foreignField: "_id",
-                            as: "owner",
-                            pipeline: [
-                                {
+                            foreignField: "_id", // matching {object}.owner === videos._id one by one for each object inside watchHistory
+                            as: "owner", //same key will be updated; owner: [{_id, fullName, username, avatar, and other data from users collection}, {}, {}, ...]
+                            pipeline: [ // in this stage we have access to each owner document which matched with videos.owner field
+                                {   // owner: [{_id, fullName, username, avatar, and other data from users collection}, {}, {}, ...] has been passed here
                                     $project: {
                                         fullName: 1,
                                         username: 1,
                                         avatar: 1
-                                    }
+                                    } //only these 3 fields will be sent in response for owner data, other fields will be excluded
                                 }
                             ]
-                        }
+                        } // final owner data will be like this: owner: [{_id, fullName, username, avatar}, {}, {}, ...]
                     },
+                    // in this stage we have access to each video document with owner data embedded inside it, we can reshape the data as per our requirement for frontend
+                    // upto this point watchHistory: [{_id, owner: [{_id, fullName, username, avatar}, {}, {}, ...], title, description, thumbnail, videoFile, duration, views}, {}, {}, ...]
+
+                    // Explanation: upto this point, I have matched the owners, find them and add their data as objects as an array
+
+                    /*
+                        user: {
+                            _id: id
+                            avatar: url,
+                            avatarPublicId: string,
+                            coverImage: url,
+                            coverImagePublicId: string,
+                            email: string,
+                            fullName: string,
+                            password: string,
+                            refreshToken: string,
+                            username: string,
+                            watchHistory: [ // array of video objects with owner data embedded inside each video object
+                                {
+                                    _id: id,
+                                    videoFile: url,
+                                    thumbnail: url,
+                                    owner: [ // array of owner objects, but it will contain only one object because one video can have only one owner
+                                        {
+                                            _id: id,
+                                            fullName: string,
+                                            username: string,
+                                            avatar: url
+                                        }
+                                    ]
+                                    title: string,
+                                    description: string,
+                                    duration: number,
+                                    views: number,
+                                    isPublished: boolean,
+                            ]
+                            createdAt: date,
+                            updatedAt: date
+                        }
+                    */
+
                     {
                         $addFields: {
-                            owner: {
-                                $first: "$owner"
-                            }
+                            owner: { $first: "$owner" }  // $first operator is used to get the first element of the owner array and set it as an object to owner key, because we know that there will be only one owner for each video, so instead of sending owner as an array with one object, we can reshape it to send only the object for easier access in frontend, "$owner" is the owner array which we got from previous lookup stage, and we are taking the first element of that array and setting it as an object to owner key
                         }
                     }
+
+                    // Explanation: upto this point, I have reshaped the owner data from an array to an object because we know that there will be only one owner for each video, so instead of sending owner as an array with one object, I have reshaped it to send only the object for easier access in frontend
+
+                    /*
+                        user: {
+                            _id: id
+                            avatar: url,
+                            avatarPublicId: string,
+                            coverImage: url,
+                            coverImagePublicId: string,
+                            email: string,
+                            fullName: string,
+                            password: string,
+                            refreshToken: string,
+                            username: string,
+                            watchHistory: [ // array of video objects with owner data embedded inside each video object
+                                {
+                                    _id: id,
+                                    videoFile: url,
+                                    thumbnail: url,
+                                    owner: { // owner object instead of array
+                                            _id: id,
+                                            fullName: string,
+                                            username: string,
+                                            avatar: url
+                                    }
+                                    title: string,
+                                    description: string,
+                                    duration: number,
+                                    views: number,
+                                    isPublished: boolean,
+                            ]
+                            createdAt: date,
+                            updatedAt: date
+                        }
+                    */
                 ]
             }
         }
     ])
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, user[0]?.watchHistory || [], "Watch history fetched successfully"))
+    // So, the final output of this aggregation will be an array with one user object which contains the watchHistory array with video objects and each video object contains the owner data as an object embedded inside it, and we can send this data in response to frontend for displaying the watch history with video and owner details
+
+
+    /*
+        user: {
+        _id: id,
+        avatar: url,
+        avatarPublicId: string,
+        coverImage: url,
+        coverImagePublicId: string,
+        email: string,
+        fullName: string,
+        password: string,
+        refreshToken: string,
+        username: string,
+        watchHistory: [
+            {
+            _id: id,
+            videoFile: url,
+            thumbnail: url,
+            owner: {
+                _id: id,
+                fullName: string,
+                username: string,
+                avatar: url
+            },
+            title: string,
+            description: string,
+            duration: number,
+            views: number,
+            isPublished: boolean
+            }
+        ],
+        createdAt: date,
+        updatedAt: date
+        }
+    */
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            user[0]?.watchHistory || [],
+            "Watch history fetched successfully"
+        )
+    )
 })
+
 
 
 export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, cloudinaryTest, getUserChannelProfile, getWatchHistory }
