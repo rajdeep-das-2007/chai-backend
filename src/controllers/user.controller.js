@@ -1,6 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js"
 import { User } from "../models/user.models.js";
+console.log("USER CONTROLLER LOADED !!!");
 import { uploadOnCloudinary, deleteFromCloudinary, checkIfFileExists } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
@@ -632,7 +633,5 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         )
     )
 })
-
-
 
 export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, cloudinaryTest, getUserChannelProfile, getWatchHistory }

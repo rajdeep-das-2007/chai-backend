@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+console.log("APP.JS LOADED !!!");
 
 
 const app = express()
@@ -22,6 +23,7 @@ import userRouter from "./routes/user.routes.js"
 
 //routes declaration
 app.use("/api/v1/users", userRouter)
+
 
 // http://localhost:8000/api/v1/users/register
 

@@ -1,5 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
+console.log("COMMENT MODEL LOADED !!!");
 const commentSchema = new Schema(
     {
         content:{

@@ -1,20 +1,21 @@
 import mongoose, {Schema} from "mongoose";
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
+console.log("USER MODEL LOADED !!!");
 
 const userSchema = new Schema({
     username: {
         type: String,
         required: true,
-        unique: true,
+        // unique: true,
         lowercase: true,
         trim: true,
-        index: true,
+        // index: true,
     },
     email: {
         type: String,
         required: true,
-        unique: true,
+        // unique: true,
         lowercase: true,
         trim: true,
     },
@@ -22,7 +23,6 @@ const userSchema = new Schema({
         type: String,
         required: true,
         trim: true,
-        index: true
     },
     avatar:{
         type: String, // cloudinary url
@@ -54,7 +54,7 @@ const userSchema = new Schema({
     refreshToken: {
         type: String
     }
-}, {timestamps: true})
+}, {timestamps: true}, {autoindex: false})
 
 userSchema.pre("save", async function () {
     if (!this.isModified("password")) return;
